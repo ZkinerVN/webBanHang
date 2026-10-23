@@ -1,7 +1,9 @@
 package com.example.flashsale.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConversionException;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -101,7 +103,35 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public MessageConverter messageConverter() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return new MessageConverter() {
+            @Override
+            public Message toMessage(Object object, MessageProperties messageProperties) throws MessageConversionException {
+                try {
+                    byte[] bytes = objectMapper.writeValueAsBytes(object);
+                    messageProperties.setContentType(MessageProperties.CONTENT_TYPE_JSON);
+                    messageProperties.setContentEncoding("UTF-8");
+                    messageProperties.setHeader("__TypeId__", object.getClass().getName());
+                    return new Message(bytes, messageProperties);
+                } catch (Exception e) {
+                    throw new MessageConversionException("Lỗi chuyển đổi dữ liệu thành JSON message", e);
+                }
+            }
+
+            @Override
+            public Object fromMessage(Message message) throws MessageConversionException {
+                try {
+                    Object typeIdHeader = message.getMessageProperties().getHeaders().get("__TypeId__");
+                    if (typeIdHeader != null) {
+                        Class<?> targetClass = Class.forName(typeIdHeader.toString());
+                        return objectMapper.readValue(message.getBody(), targetClass);
+                    }
+                    return objectMapper.readValue(message.getBody(), Object.class);
+                } catch (Exception e) {
+                    throw new MessageConversionException("Lỗi giải mã JSON message thành đối tượng", e);
+                }
+            }
+        };
     }
 }
