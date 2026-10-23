@@ -10,11 +10,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    @Modifying
-    @Query("UPDATE Product p SET p.stock = p.stock - :quantity, p.version = p.version + 1 WHERE p.id = :id AND p.stock >= :quantity")
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Product p SET p.stock = p.stock - :quantity WHERE p.id = :id AND p.stock >= :quantity")
     int decrementStock(@Param("id") Long id, @Param("quantity") Integer quantity);
 
-    @Modifying
-    @Query("UPDATE Product p SET p.stock = p.stock + :quantity, p.version = p.version + 1 WHERE p.id = :id")
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Product p SET p.stock = p.stock + :quantity WHERE p.id = :id")
     int incrementStock(@Param("id") Long id, @Param("quantity") Integer quantity);
 }

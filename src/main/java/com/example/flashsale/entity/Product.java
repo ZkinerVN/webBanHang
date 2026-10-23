@@ -22,6 +22,17 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
 
+    @Column(length = 1000)
+    private String description;
+
+    private Long price;
+
+    private Long originalPrice;
+
+    private String imageUrl;
+
+    private String category;
+
     @Version
     private Long version;
 }

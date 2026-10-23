@@ -1,6 +1,11 @@
 local stock_key = KEYS[1]
 local quantity = tonumber(ARGV[1])
 
+-- Kiểm tra số lượng hợp lệ (> 0)
+if quantity == nil or quantity <= 0 then
+    return -2 -- Số lượng không hợp lệ
+end
+
 local current_stock = tonumber(redis.call('get', stock_key) or '-1')
 
 if current_stock == -1 then

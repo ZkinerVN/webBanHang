@@ -45,10 +45,11 @@ class FlashSaleConcurrencyTest {
 
         Product saved = productRepository.save(
                 Product.builder()
-                        .name("Vé Test Đa Luồng")
+                        .name("Sản Phẩm Test Đa Luồng")
+                        .price(19990000L)
                         .stock(INITIAL_STOCK)
                         .build()
-        );
+                );
         testProductId = saved.getId();
 
         // Warm cache
@@ -90,8 +91,11 @@ class FlashSaleConcurrencyTest {
         doneLatch.await();       // Đợi cả 200 luồng chạy xong
         executor.shutdown();
 
-        // Đợi 3 giây cho Worker RabbitMQ tiêu thụ hết toàn bộ 50 message ghi xuống PostgreSQL
-        Thread.sleep(3000);
+        // Chờ tối đa 10 giây cho Worker RabbitMQ tiêu thụ hết toàn bộ 50 message ghi xuống PostgreSQL
+        long deadline = System.currentTimeMillis() + 10000;
+        while (orderRepository.count() < 50 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(100);
+        }
 
         // KIỂM CHỨNG KẾT QUẢ
         assertEquals(50, successCount.get(), "Phải có đúng 50 lượt mua thành công");

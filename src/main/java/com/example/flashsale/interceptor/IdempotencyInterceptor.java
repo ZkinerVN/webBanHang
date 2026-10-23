@@ -15,7 +15,7 @@ import java.time.Duration;
 public class IdempotencyInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate redisTemplate;
-    private static final String IDEMPOTENCY_HEADER = "Idempotency-Key";
+    public static final String IDEMPOTENCY_HEADER = "Idempotency-Key";
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -25,7 +25,10 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
 
         String key = request.getHeader(IDEMPOTENCY_HEADER);
         if (key == null || key.isBlank()) {
-            return true;
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"message\": \"Header 'Idempotency-Key' là bắt buộc đối với giao dịch này.\"}");
+            return false;
         }
 
         String redisKey = "idempotency:" + key;
@@ -33,9 +36,14 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
         Boolean success = redisTemplate.opsForValue().setIfAbsent(redisKey, "PROCESSING", Duration.ofSeconds(120));
 
         if (Boolean.FALSE.equals(success)) {
+            String currentVal = redisTemplate.opsForValue().get(redisKey);
             response.setStatus(HttpStatus.CONFLICT.value());
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("Request trùng lặp: Đang xử lý hoặc đã hoàn tất.");
+            response.setContentType("application/json;charset=UTF-8");
+            if ("ACCEPTED".equals(currentVal) || "SUCCESS".equals(currentVal)) {
+                response.getWriter().write("{\"message\": \"Giao dịch này đã được tiếp nhận hoặc đã hoàn tất trước đó.\", \"status\": \"" + currentVal + "\"}");
+            } else {
+                response.getWriter().write("{\"message\": \"Request trùng lặp: Đang xử lý giao dịch, vui lòng chờ.\"}");
+            }
             return false;
         }
 

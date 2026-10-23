@@ -24,6 +24,10 @@ public class RabbitMQConfig {
     public static final String TIMEOUT_QUEUE = "flashsale.order.timeout.queue";
     public static final String TIMEOUT_ROUTING_KEY = "flashsale.order.timeout.key";
 
+    // 4. Luồng xử lý thông báo & hóa đơn điện tử bất đồng bộ
+    public static final String NOTIFICATION_QUEUE = "flashsale.notification.queue";
+    public static final String NOTIFICATION_ROUTING_KEY = "flashsale.notification.key";
+
     @Bean
     public DirectExchange orderExchange() {
         return new DirectExchange(EXCHANGE_NAME);
@@ -63,7 +67,7 @@ public class RabbitMQConfig {
     @Bean
     public Queue delayQueue() {
         return QueueBuilder.durable(DELAY_QUEUE)
-                .withArgument("x-message-ttl", 30000) // 30 giây (Thực tế để 300000 = 5 phút)
+                .withArgument("x-message-ttl", 30000) // 30 giây
                 .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", TIMEOUT_ROUTING_KEY)
                 .build();
@@ -74,7 +78,7 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(delayQueue()).to(orderExchange()).with(DELAY_ROUTING_KEY);
     }
 
-    // Queue xử lý thu hồi vé khi hết hạn
+    // Queue xử lý thu hồi đơn hàng khi hết hạn 30s
     @Bean
     public Queue timeoutQueue() {
         return QueueBuilder.durable(TIMEOUT_QUEUE).build();
@@ -83,6 +87,17 @@ public class RabbitMQConfig {
     @Bean
     public Binding timeoutBinding() {
         return BindingBuilder.bind(timeoutQueue()).to(dlxExchange()).with(TIMEOUT_ROUTING_KEY);
+    }
+
+    // Queue thông báo hóa đơn điện tử
+    @Bean
+    public Queue notificationQueue() {
+        return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
+    }
+
+    @Bean
+    public Binding notificationBinding() {
+        return BindingBuilder.bind(notificationQueue()).to(orderExchange()).with(NOTIFICATION_ROUTING_KEY);
     }
 
     @Bean

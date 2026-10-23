@@ -22,4 +22,12 @@ public class RedisConfig {
         script.setResultType(Long.class);
         return script;
     }
+
+    @Bean
+    public DefaultRedisScript<Long> rateLimitScript() {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setLocation(new ClassPathResource("scripts/rate_limit_sliding_window.lua"));
+        script.setResultType(Long.class);
+        return script;
+    }
 }

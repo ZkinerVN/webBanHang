@@ -29,5 +29,28 @@ services:
       - "5672:5672"   # Cổng kết nối AMQP cho Spring Boot
       - "15672:15672" # Cổng Dashboard quản trị web
 
+  # TechShop Full-Stack Application Container
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: techshop-app
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flashsale_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+    profiles:
+      - full
+
 volumes:
   postgres_data:
